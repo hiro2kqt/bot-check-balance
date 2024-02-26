@@ -3,14 +3,19 @@ const { ethers } = require("ethers");
 const cron = require("node-cron");
 const abiToken = require("./abi");
 require("dotenv").config();
+const EngineABI = require('./V2_EngineV2.json')
 
 const listAccount = JSON.parse(process.env.LIST_ACCOUNT);
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.MAINWALLET_PRIVATE_KEY, provider);
 const tokenContract = new ethers.Contract(
   process.env.TOKEN_ADRESS,
   abiToken,
+  provider
+);
+const arbiusContract = new ethers.Contract(
+  '0x3BF6050327Fa280Ee1B5F3e8Fd5EA2EfE8A6472a',
+  EngineABI,
   provider
 );
 const addressShortener = (addr = "", digits = 5) => {
@@ -40,22 +45,22 @@ async function checkBalance() {
         return balance;
       })
     );
+    const reward = await checkTaskReward()
     axios({
       baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
       url: "/sendMessage",
       method: "post",
       data: {
         chat_id: process.env.TELEGRAM_CHAT_ID,
-        text: `${currentTime} <b>${days}d${hours % 24}h${
-          minutes % 60
-        }m</b>\n${data
-          .map(
-            (e, index) =>
-              `${addressShortener(listAccount[index])}: <b>${roundDown(
-                ethers.formatEther(e)
-              )}</b> Aius\n`
-          )
-          .join("")}`,
+        text: `${currentTime} <b>${days}d${hours % 24}h${minutes % 60
+          }m</b>\n${data
+            .map(
+              (e, index) =>
+                `${addressShortener(listAccount[index])}: <b>${roundDown(
+                  ethers.formatEther(e)
+                )}</b> Aius\n`
+            )
+            .join("")}\nTask Reward: <b>${reward}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
         parse_mode: "html",
         // disable_web_page_preview: true,
@@ -71,9 +76,19 @@ async function checkBalance() {
   }
 }
 
+async function checkTaskReward() {
+  try {
+    const reward = await arbiusContract.getReward();
+    console.log(ethers.formatEther(reward), 'rewardreward');
+    return ethers.formatEther(reward);
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
+}
+
 const tenSecondlyTask = () => {
   checkBalance();
 };
 
 const cronExpression = "0 */10 * * * *";
-cron.schedule(cronExpression, tenSecondlyTask);
+cron.schedule(cronExpression, tenSecondlyTask, {runOnInit:true});
