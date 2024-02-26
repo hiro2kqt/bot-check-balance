@@ -1,0 +1,80 @@
+const { default: axios } = require("axios");
+const { ethers } = require("ethers");
+const cron = require("node-cron");
+const abiToken = require("./abi");
+require("dotenv").config();
+
+const listAccount = JSON.parse(process.env.LIST_ACCOUNT);
+
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.MAINWALLET_PRIVATE_KEY, provider);
+const tokenContract = new ethers.Contract(
+  process.env.TOKEN_ADRESS,
+  abiToken,
+  provider
+);
+const addressShortener = (addr = "", digits = 5) => {
+  digits = 2 * digits >= addr.length ? addr.length : digits;
+  return `${addr.substring(0, digits)}...${addr.slice(-digits)}`;
+};
+const roundDown = (v, n = 4) => {
+  return Math.floor(v * Math.pow(10, n)) / Math.pow(10, n);
+};
+
+async function checkBalance() {
+  try {
+    const currentDate = new Date();
+    const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
+    const startTime = "2024-02-26 0:23:31";
+    const startDate = new Date(startTime);
+    const timeDifference = currentDate - startDate;
+    // Convert milliseconds to seconds, then to minutes, hours, and days
+    const seconds = Math.floor(timeDifference / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    const data = await Promise.all(
+      listAccount.map(async (obj) => {
+        const balance = await tokenContract.balanceOf(obj);
+        return balance;
+      })
+    );
+    axios({
+      baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+      url: "/sendMessage",
+      method: "post",
+      data: {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: `${currentTime} <b>${days}d${hours % 24}h${
+          minutes % 60
+        }m</b>\n${data
+          .map(
+            (e, index) =>
+              `${addressShortener(listAccount[index])}: <b>${roundDown(
+                ethers.formatEther(e)
+              )}</b> Aius\n`
+          )
+          .join("")}`,
+        message_thread_id: process.env.TELEGRAM_THREAD_ID,
+        parse_mode: "html",
+        // disable_web_page_preview: true,
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
+}
+
+// const tenSecondlyTask = () => {
+//   checkBalance();
+// };
+
+// const cronExpression = "0 */10 * * * *";
+// cron.schedule(cronExpression, tenSecondlyTask);
+checkBalance();
