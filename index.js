@@ -71,10 +71,9 @@ async function checkBalance() {
   }
 }
 
-// const tenSecondlyTask = () => {
-//   checkBalance();
-// };
+const tenSecondlyTask = () => {
+  checkBalance();
+};
 
-// const cronExpression = "0 */10 * * * *";
-// cron.schedule(cronExpression, tenSecondlyTask);
-checkBalance();
+const cronExpression = "0 */10 * * * *";
+cron.schedule(cronExpression, tenSecondlyTask);
