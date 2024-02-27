@@ -75,7 +75,7 @@ async function checkBalance() {
             (e, index) =>
               `<a href="https://nova.arbiscan.io/address/${e}">${addressShortener(listAccount[index])}</a>\n<b>${
                 e?.aius
-              }</b> Aius|<b>${e?.eth}</b>eth|${e.usdt}usdt$\n`
+              }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n`
           )
           .join("")}\nTask Reward: <b>${reward}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
