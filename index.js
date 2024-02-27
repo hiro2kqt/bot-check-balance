@@ -25,7 +25,17 @@ const addressShortener = (addr = "", digits = 5) => {
 const roundDown = (v, n = 4) => {
   return Math.floor(v * Math.pow(10, n)) / Math.pow(10, n);
 };
+async function getEthPrice() {
+  try {
+    const response = await axios.get(
+      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+    );
 
+    return response.data.ethereum.usd;
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
+}
 async function checkBalance() {
   try {
     const currentDate = new Date();
@@ -38,6 +48,7 @@ async function checkBalance() {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
+    const ethprice = await getEthPrice();
 
     const data = await Promise.all(
       listAccount.map(async (obj) => {
@@ -46,6 +57,7 @@ async function checkBalance() {
         return {
           aius: roundDown(ethers.formatEther(balance)),
           eth: roundDown(ethers.formatEther(balanceWei)),
+          usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
         };
       })
     );
@@ -61,14 +73,14 @@ async function checkBalance() {
         }m</b>\n${data
           .map(
             (e, index) =>
-              `${addressShortener(listAccount[index])}: <b>${
+              `<a href="https://nova.arbiscan.io/address/${e}">${addressShortener(listAccount[index])}</a>\n<b>${
                 e?.aius
-              }</b> Aius || <b>${e?.eth}</b> Eth\n`
+              }</b> Aius|<b>${e?.eth}</b>eth|${e.usdt}usdt$\n`
           )
           .join("")}\nTask Reward: <b>${reward}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
         parse_mode: "html",
-        // disable_web_page_preview: true,
+        disable_web_page_preview: true,
       },
       headers: {
         "Content-Type": "application/json",
@@ -84,7 +96,6 @@ async function checkBalance() {
 async function checkTaskReward() {
   try {
     const reward = await arbiusContract.getReward();
-    console.log(ethers.formatEther(reward), "rewardreward");
     return ethers.formatEther(reward);
   } catch (error) {
     console.error("Error:", error.message);
