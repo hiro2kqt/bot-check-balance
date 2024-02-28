@@ -65,11 +65,15 @@ async function checkBalance() {
         const aiusBalance = roundDown(ethers.formatEther(balance));
         const ethBalance = roundDown(ethers.formatEther(balanceWei));
         let hProfit = 0;
+        let hGasEth = 0;
+        let hGasUsd = 0;
         if (isCheckPoint == true) {
+          hGasEth = previousLogs[4]?.balance[index]?.eth - +ethBalance;
+          hGasUsd = hGasEth * +ethprice;
           hProfit =
             (+aiusBalance - previousLogs[4]?.balance[index]?.aius) *
               +process.env.AIUS_PRICE -
-            (previousLogs[4]?.balance[index]?.eth - +ethBalance) * +ethprice -
+            hGasUsd -
             0.857;
         }
         // const sProfit =
@@ -83,6 +87,8 @@ async function checkBalance() {
           eth: ethBalance,
           usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
           hProfit: roundDown(hProfit),
+          hGasEth: roundDown(hGasEth),
+          hGasUsd: roundDown(hGasUsd),
         };
       })
     );
@@ -112,11 +118,11 @@ async function checkBalance() {
             (e, index) =>
               `<a href="https://nova.arbiscan.io/address/${
                 listAccount[index]
-              }">${addressShortener(listAccount[index])}</a>|<b>${e.hProfit}</b>$\n<b>${
+              }">${addressShortener(listAccount[index])}</a>\n<b>${
                 e?.aius
-              }</b> Aius|<b>${e?.eth}</b>eth|<b>${
-                e.usdt
-              }</b>$\n`
+              }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n🌠Profit:<b>${
+                e?.hProfit
+              } 🧶Fee:<b>${e?.hGasEth}|${e?.hGasUsd}</b></b>$\n`
           )
           .join("")}\nTask Reward: <b>${reward}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
