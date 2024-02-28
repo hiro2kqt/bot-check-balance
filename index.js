@@ -149,10 +149,9 @@ async function checkTaskReward() {
   }
 }
 
-checkBalance();
-// const tenSecondlyTask = () => {
-//   checkBalance();
-// };
+const tenSecondlyTask = () => {
+  checkBalance();
+};
 
-// const cronExpression = "0 */10 * * * *";
-// cron.schedule(cronExpression, tenSecondlyTask, { runOnInit: true });
+const cronExpression = "0 */10 * * * *";
+cron.schedule(cronExpression, tenSecondlyTask, { runOnInit: true });
