@@ -99,9 +99,11 @@ async function checkBalance() {
         }m</b>\n${data
           .map(
             (e, index) =>
-              `<a href="https://nova.arbiscan.io/address/${e}">${addressShortener(
+              `<a href="https://nova.arbiscan.io/address/${
                 listAccount[index]
-              )}</a>\n<b>${e?.aius}</b> Aius|<b>${e?.eth}</b>eth|<b>${
+              }">${addressShortener(listAccount[index])}</a>\n<b>${
+                e?.aius
+              }</b> Aius|<b>${e?.eth}</b>eth|<b>${
                 e.usdt
               }</b>$\nShort profit: <b>${e.sProfit}</b>$\n`
           )
