@@ -65,7 +65,7 @@ async function checkBalance() {
         const sProfit =
           (+aiusBalance - previousLog?.balance[index]?.aius) *
             +process.env.AIUS_PRICE -
-          (previousLog?.balance[index]?.eth - +ethBalance) -
+          (previousLog?.balance[index]?.eth - +ethBalance) * +ethprice -
           0.857 / 6;
         return {
           address: obj,
