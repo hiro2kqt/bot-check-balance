@@ -4,6 +4,7 @@ const cron = require("node-cron");
 const abiToken = require("./abi");
 require("dotenv").config();
 const EngineABI = require("./V2_EngineV2.json");
+const logReward = require("./db");
 
 const listAccount = JSON.parse(process.env.LIST_ACCOUNT);
 
@@ -55,6 +56,7 @@ async function checkBalance() {
         const balance = await tokenContract.balanceOf(obj);
         const balanceWei = await provider.getBalance(obj);
         return {
+          address: obj,
           aius: roundDown(ethers.formatEther(balance)),
           eth: roundDown(ethers.formatEther(balanceWei)),
           usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
@@ -62,6 +64,17 @@ async function checkBalance() {
       })
     );
     const reward = await checkTaskReward();
+    const logObject = new logReward({
+      task_reward: +reward,
+      logTime: currentDate,
+      balance: data,
+    });
+    logObject
+      .save()
+      .then(() => {})
+      .catch((error) => {
+        console.error("Error saving log:", error);
+      });
     axios({
       baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
       url: "/sendMessage",
