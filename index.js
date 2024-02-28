@@ -122,7 +122,7 @@ async function checkBalance() {
                 e?.aius
               }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n🌠Profit:<b>${
                 e?.hProfit
-              } 🧶Fee:<b>${e?.hGasEth}|${e?.hGasUsd}</b></b>$\n`
+              }$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b></b>\n`
           )
           .join("")}\nTask Reward: <b>${reward}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
