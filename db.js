@@ -33,6 +33,9 @@ const logRewardSchema = new mongoose.Schema({
   balance: {
     type: Object,
   },
+  isCheckPoint: {
+    type: Boolean
+  }
 });
 
 const logReward = mongoose.model("logReward", logRewardSchema);

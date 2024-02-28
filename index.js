@@ -37,6 +37,7 @@ async function getEthPrice() {
     console.error("Error:", error.message);
   }
 }
+const numCheckPoint = 2;
 async function checkBalance() {
   try {
     const currentDate = new Date();
@@ -51,28 +52,37 @@ async function checkBalance() {
     const days = Math.floor(hours / 24);
     const ethprice = await getEthPrice();
 
-    const previousLog = await logReward.findOne(
+    const previousLogs = await logReward.find(
       {},
       {},
-      { sort: { logTime: -1 } }
+      { sort: { logTime: -1 }, limit: 5 }
     );
+    const isCheckPoint = previousLogs[4]?.isCheckPoint;
     const data = await Promise.all(
       listAccount.map(async (obj, index) => {
         const balance = await tokenContract.balanceOf(obj);
         const balanceWei = await provider.getBalance(obj);
         const aiusBalance = roundDown(ethers.formatEther(balance));
         const ethBalance = roundDown(ethers.formatEther(balanceWei));
-        const sProfit =
-          (+aiusBalance - previousLog?.balance[index]?.aius) *
-            +process.env.AIUS_PRICE -
-          (previousLog?.balance[index]?.eth - +ethBalance) * +ethprice -
-          0.857 / 6;
+        let hProfit = 0;
+        if (isCheckPoint == true) {
+          hProfit =
+            (+aiusBalance - previousLogs[4]?.balance[index]?.aius) *
+              +process.env.AIUS_PRICE -
+            (previousLogs[4]?.balance[index]?.eth - +ethBalance) * +ethprice -
+            0.857;
+        }
+        // const sProfit =
+        //   (+aiusBalance - previousLog?.balance[index]?.aius) *
+        //     +process.env.AIUS_PRICE -
+        //   (previousLog?.balance[index]?.eth - +ethBalance) * +ethprice -
+        //   0.857 / 6;
         return {
           address: obj,
           aius: aiusBalance,
           eth: ethBalance,
           usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
-          sProfit: roundDown(sProfit),
+          hProfit: roundDown(hProfit),
         };
       })
     );
@@ -81,6 +91,7 @@ async function checkBalance() {
       task_reward: +reward,
       logTime: currentDate,
       balance: data,
+      isCheckPoint,
     });
     await logObject
       .save()
@@ -101,11 +112,11 @@ async function checkBalance() {
             (e, index) =>
               `<a href="https://nova.arbiscan.io/address/${
                 listAccount[index]
-              }">${addressShortener(listAccount[index])}</a>\n<b>${
+              }">${addressShortener(listAccount[index])}</a>|<b>${e.hProfit}</b>$\n<b>${
                 e?.aius
               }</b> Aius|<b>${e?.eth}</b>eth|<b>${
                 e.usdt
-              }</b>$\nShort profit: <b>${e.sProfit}</b>$\n`
+              }</b>$\n`
           )
           .join("")}\nTask Reward: <b>${reward}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
@@ -132,9 +143,10 @@ async function checkTaskReward() {
   }
 }
 
-const tenSecondlyTask = () => {
-  checkBalance();
-};
+checkBalance();
+// const tenSecondlyTask = () => {
+//   checkBalance();
+// };
 
-const cronExpression = "0 */10 * * * *";
-cron.schedule(cronExpression, tenSecondlyTask, { runOnInit: true });
+// const cronExpression = "0 */10 * * * *";
+// cron.schedule(cronExpression, tenSecondlyTask, { runOnInit: true });
