@@ -129,7 +129,7 @@ async function checkBalance() {
                 e?.aius
               }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n${
                 e?.hProfit > 0
-                  ? `🌠Profit:<b>${e?.hProfit}</b>$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b>\n`
+                  ? `🌠Hour Profit:<b>${e?.hProfit}</b>$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b>\n`
                   : ""
               }🕵Short profit:<b>${e?.sProfit}</b>$ ❄️Fee:<b>${e?.sGasEth}e|${
                 e?.sGasUsd
