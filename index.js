@@ -133,7 +133,7 @@ async function checkBalance() {
                   : ""
               }🕵Short profit:<b>${e?.sProfit}</b>$ ❄️Fee:<b>${e?.sGasEth}e|${
                 e?.sGasUsd
-              }$</b>`
+              }$</b>\n`
           )
           .join("")}\nTask Reward: <b>${roundDown(reward, 8 )}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
