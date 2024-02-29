@@ -58,6 +58,7 @@ async function checkBalance() {
       { sort: { logTime: -1 }, limit: 5 }
     );
     const isCheckPoint = previousLogs[4]?.isCheckPoint;
+    const lastLog = previousLogs[0];
     const data = await Promise.all(
       listAccount.map(async (obj, index) => {
         const balance = await tokenContract.balanceOf(obj);
@@ -76,11 +77,14 @@ async function checkBalance() {
             hGasUsd -
             0.857;
         }
-        // const sProfit =
-        //   (+aiusBalance - previousLog?.balance[index]?.aius) *
-        //     +process.env.AIUS_PRICE -
-        //   (previousLog?.balance[index]?.eth - +ethBalance) * +ethprice -
-        //   0.857 / 6;
+        const sProfit =
+          (+aiusBalance - lastLog?.balance[index]?.aius) *
+            +process.env.AIUS_PRICE -
+          (lastLog?.balance[index]?.eth - +ethBalance) * +ethprice -
+          0.857 / 6;
+        const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
+        const sGasUsd = hGasEth * +ethprice;
+
         return {
           address: obj,
           aius: aiusBalance,
@@ -89,6 +93,9 @@ async function checkBalance() {
           hProfit: roundDown(hProfit),
           hGasEth: roundDown(hGasEth),
           hGasUsd: roundDown(hGasUsd),
+          sProfit: roundDown(sProfit),
+          sGasEth: roundDown(sGasEth),
+          sGasUsd: roundDown(sGasUsd),
         };
       })
     );
@@ -120,11 +127,15 @@ async function checkBalance() {
                 listAccount[index]
               }">${addressShortener(listAccount[index])}</a>\n<b>${
                 e?.aius
-              }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n🌠Profit:<b>${
-                e?.hProfit
-              }$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b></b>\n`
+              }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n${
+                e?.hProfit > 0
+                  ? `🌠Profit:<b>${e?.hProfit}</b>$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b>\n`
+                  : ""
+              }🕵Short profit:<b>${e?.sProfit}</b>$ ❄️Fee:<b>${e?.sGasEth}e|${
+                e?.sGasUsd
+              }$</b>`
           )
-          .join("")}\nTask Reward: <b>${reward}</b>`,
+          .join("")}\nTask Reward: <b>${roundDown(reward, 8 )}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
         parse_mode: "html",
         disable_web_page_preview: true,
