@@ -55,9 +55,9 @@ async function checkBalance() {
     const previousLogs = await logReward.find(
       {},
       {},
-      { sort: { logTime: -1 }, limit: 5 }
+      { sort: { logTime: -1 }, limit: 6 }
     );
-    const isCheckPoint = previousLogs[4]?.isCheckPoint;
+    const isCheckPoint = previousLogs[5]?.isCheckPoint;
     const lastLog = previousLogs[0];
     const data = await Promise.all(
       listAccount.map(async (obj, index) => {
@@ -131,7 +131,7 @@ async function checkBalance() {
                 e?.hProfit > 0
                   ? `🌠Hour Profit:<b>${e?.hProfit}</b>$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b>\n`
                   : ""
-              }🕵Short profit:<b>${e?.sProfit}</b>$ ❄️Fee:<b>${e?.sGasEth}e|${
+              }🕵Short:<b>${e?.sProfit}</b>$ ❄️Fee:<b>${e?.sGasEth}e|${
                 e?.sGasUsd
               }$</b>\n`
           )
@@ -165,4 +165,4 @@ const tenSecondlyTask = () => {
 };
 
 const cronExpression = "0 */10 * * * *";
-cron.schedule(cronExpression, tenSecondlyTask, { runOnInit: true });
+cron.schedule(cronExpression, tenSecondlyTask);
