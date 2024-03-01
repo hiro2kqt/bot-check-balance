@@ -23,17 +23,19 @@ const fetchDataAndProcess = () => {
     const indices = [];
 
     for (let i = 0; i < dataArray.length; i++) {
-      if (dataArray[i] === "A100_PCIE") {
+      if (dataArray[i].includes("A100")) {
         indices.push(i);
       }
     }
 
     const offers = indices.map((e) => {
       const id = dataArray[e - 3];
+      const name = dataArray[e];
       const price = dataArray[e + 5];
       return {
         id,
         price,
+        name
       };
     });
     axios({
@@ -47,7 +49,7 @@ const fetchDataAndProcess = () => {
             ? offers
                 .map(
                   (e, index) =>
-                    `ID: <code>${e?.id}</code>\nPrice: <b>${e?.price}</b>\n\n`
+                    `Name: <b>${e?.name}</b>\nID:<code>${e?.id}</code>\nPrice: <b>${e?.price}</b>\n\n`
                 )
                 .join("")
             : "No A100_PCIE Offer found"
