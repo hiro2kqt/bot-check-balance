@@ -71,7 +71,7 @@ const tenSecondlyTask = () => {
   fetchDataAndProcess();
 };
 
-const cronExpression = "0 */20 * * * *";
+const cronExpression = "*/5 * * * *";
 cron.schedule(cronExpression, tenSecondlyTask, {
   runOnInit: true,
 });
