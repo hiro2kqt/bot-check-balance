@@ -106,6 +106,7 @@ async function checkBalance() {
       balance: data,
       isCheckPoint,
     });
+    const feePerSol =  await checkGasfeeSol()
     await logObject
       .save()
       .then(() => {})
@@ -135,7 +136,7 @@ async function checkBalance() {
                 e?.sGasUsd
               }$</b>\n`
           )
-          .join("")}\nTask Reward: <b>${roundDown(reward, 8 )}</b>`,
+          .join("")}\nReal Task Reward: <b>${roundDown(reward*0.9, 5)}</b>\nGas fee per solution: <b>${roundDown(feePerSol*ethprice, 5)}</b>\nEstimate profit per solution: <b>${roundDown(reward*0.9-feePerSol*ethprice, 5 )}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
         parse_mode: "html",
         disable_web_page_preview: true,
@@ -159,6 +160,31 @@ async function checkTaskReward() {
     console.error("Error:", error.message);
   }
 }
+
+const checkGasfeeSol = async () => {
+  const blockNumber = await provider.getBlockNumber()
+  const apiScan = `https://api-nova.arbiscan.io/api?module=account&action=txlist&address=0x3BF6050327Fa280Ee1B5F3e8Fd5EA2EfE8A6472a&startblock=${blockNumber - 500}&endblock=${blockNumber}&page=1&offset=50&sort=asc&apikey=QRMANDI8UY4GSF8NT39H6JHXVXNG5EGUUQ`
+  const rs = await axios({
+    baseURL: apiScan,
+    method: "get",
+    headers: {
+      "Content-Type": "application/json",
+      "cache-control": "no-cache",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+  console.log(rs, 'rsrs');
+
+  const methods = ['submitTask', 'claimSolution', 'submitSolution', 'signalCommitment']
+  let gasUsed = 0
+  methods.map(method => {
+    const submiskTask = rs?.data?.result.find(el => el.functionName.includes(method))
+    gasUsed += (Number(submiskTask.gasUsed) || 0)
+  })
+  const gasPerTask = ((gasUsed*rs?.data?.result?.[0]?.gasPrice)/10**18)
+  return gasPerTask
+}
+
 
 const tenSecondlyTask = () => {
   checkBalance();
