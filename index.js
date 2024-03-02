@@ -7,6 +7,7 @@ const EngineABI = require("./V2_EngineV2.json");
 const logReward = require("./db");
 
 const listAccount = JSON.parse(process.env.LIST_ACCOUNT);
+const listClaimAccount = JSON.parse(process.env.LIST_CLAIM_ACCOUNT);
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const tokenContract = new ethers.Contract(
@@ -65,6 +66,10 @@ async function checkBalance() {
         const balanceWei = await provider.getBalance(obj);
         const aiusBalance = roundDown(ethers.formatEther(balance));
         const ethBalance = roundDown(ethers.formatEther(balanceWei));
+
+        const balanceClaimWei = await provider.getBalance(listClaimAccount[index]);
+        const ethClaimBalance = roundDown(ethers.formatEther(balanceClaimWei));
+
         let hProfit = 0;
         let hGasEth = 0;
         let hGasUsd = 0;
@@ -84,12 +89,15 @@ async function checkBalance() {
           0.857 / 6;
         const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
         const sGasUsd = hGasEth * +ethprice;
+        
 
         return {
           address: obj,
           aius: aiusBalance,
           eth: ethBalance,
+          ethClaim: ethClaimBalance,
           usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
+          usdtClaim: roundDown(+ethers.formatEther(balanceClaimWei) * +ethprice),
           hProfit: roundDown(hProfit),
           hGasEth: roundDown(hGasEth),
           hGasUsd: roundDown(hGasUsd),
@@ -128,7 +136,8 @@ async function checkBalance() {
                 listAccount[index]
               }">${addressShortener(listAccount[index])}</a>\n<b>${
                 e?.aius
-              }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$\n${
+              }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$
+<b>Claim balance:</b> ${e?.ethClaim}e | ${e?.usdtClaim}$\n\n${
                 e?.hProfit > 0
                   ? `🌠Hour Profit:<b>${e?.hProfit}</b>$ 🧶Fee:<b>${e?.hGasEth}e|${e?.hGasUsd}$</b>\n`
                   : ""
