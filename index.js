@@ -5,6 +5,7 @@ const abiToken = require("./abi");
 require("dotenv").config();
 const EngineABI = require("./V2_EngineV2.json");
 const logReward = require("./db");
+const { roundDown } = require("./utils");
 
 const listAccount = JSON.parse(process.env.LIST_ACCOUNT);
 const listClaimAccount = JSON.parse(process.env.LIST_CLAIM_ACCOUNT);
@@ -24,9 +25,7 @@ const addressShortener = (addr = "", digits = 5) => {
   digits = 2 * digits >= addr.length ? addr.length : digits;
   return `${addr.substring(0, digits)}...${addr.slice(-digits)}`;
 };
-const roundDown = (v, n = 4) => {
-  return Math.floor(v * Math.pow(10, n)) / Math.pow(10, n);
-};
+
 async function getEthPrice() {
   try {
     const response = await axios.get(
@@ -67,7 +66,9 @@ async function checkBalance() {
         const aiusBalance = roundDown(ethers.formatEther(balance));
         const ethBalance = roundDown(ethers.formatEther(balanceWei));
 
-        const balanceClaimWei = await provider.getBalance(listClaimAccount[index]);
+        const balanceClaimWei = await provider.getBalance(
+          listClaimAccount[index]
+        );
         const ethClaimBalance = roundDown(ethers.formatEther(balanceClaimWei));
 
         let hProfit = 0;
@@ -89,7 +90,6 @@ async function checkBalance() {
           0.857 / 6;
         const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
         const sGasUsd = hGasEth * +ethprice;
-        
 
         return {
           address: obj,
@@ -97,7 +97,9 @@ async function checkBalance() {
           eth: ethBalance,
           ethClaim: ethClaimBalance,
           usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
-          usdtClaim: roundDown(+ethers.formatEther(balanceClaimWei) * +ethprice),
+          usdtClaim: roundDown(
+            +ethers.formatEther(balanceClaimWei) * +ethprice
+          ),
           hProfit: roundDown(hProfit),
           hGasEth: roundDown(hGasEth),
           hGasUsd: roundDown(hGasUsd),
@@ -114,7 +116,7 @@ async function checkBalance() {
       balance: data,
       isCheckPoint,
     });
-    const feePerSol =  await checkGasfeeSol()
+    const feePerSol = await checkGasfeeSol();
     await logObject
       .save()
       .then(() => {})
@@ -145,7 +147,16 @@ async function checkBalance() {
                 e?.sGasUsd
               }$</b>\n`
           )
-          .join("")}\nReal Task Reward: <b>${roundDown(reward*0.9, 5)}</b>\nGas fee per solution: <b>${roundDown(feePerSol*ethprice, 5)}</b>\nEstimate profit per solution: <b>${roundDown(reward*0.9*100-feePerSol*ethprice, 5 )}</b>`,
+          .join("")}\nReal Task Reward: <b>${roundDown(
+          reward * 0.9,
+          5
+        )}</b>\nGas fee per solution: <b>${roundDown(
+          feePerSol * ethprice,
+          5
+        )}</b>\nEstimate profit per solution: <b>${roundDown(
+          reward * 0.9 * 100 - feePerSol * ethprice,
+          5
+        )}</b>`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
         parse_mode: "html",
         disable_web_page_preview: true,
@@ -171,8 +182,10 @@ async function checkTaskReward() {
 }
 
 const checkGasfeeSol = async () => {
-  const blockNumber = await provider.getBlockNumber()
-  const apiScan = `https://api-nova.arbiscan.io/api?module=account&action=txlist&address=0x3BF6050327Fa280Ee1B5F3e8Fd5EA2EfE8A6472a&startblock=${blockNumber - 500}&endblock=${blockNumber}&page=1&offset=50&sort=asc&apikey=QRMANDI8UY4GSF8NT39H6JHXVXNG5EGUUQ`
+  const blockNumber = await provider.getBlockNumber();
+  const apiScan = `https://api-nova.arbiscan.io/api?module=account&action=txlist&address=0x3BF6050327Fa280Ee1B5F3e8Fd5EA2EfE8A6472a&startblock=${
+    blockNumber - 500
+  }&endblock=${blockNumber}&page=1&offset=50&sort=asc&apikey=QRMANDI8UY4GSF8NT39H6JHXVXNG5EGUUQ`;
   const rs = await axios({
     baseURL: apiScan,
     method: "get",
@@ -182,18 +195,24 @@ const checkGasfeeSol = async () => {
       "Access-Control-Allow-Origin": "*",
     },
   });
-  console.log(rs, 'rsrs');
+  console.log(rs, "rsrs");
 
-  const methods = ['submitTask', 'claimSolution', 'submitSolution', 'signalCommitment']
-  let gasUsed = 0
-  methods.map(method => {
-    const submiskTask = rs?.data?.result.find(el => el.functionName.includes(method) && el.isError =="0")
-    gasUsed += (Number(submiskTask.gasUsed) || 0)
-  })
-  const gasPerTask = ((gasUsed*rs?.data?.result?.[0]?.gasPrice)/10**18)
-  return gasPerTask
-}
-
+  const methods = [
+    "submitTask",
+    "claimSolution",
+    "submitSolution",
+    "signalCommitment",
+  ];
+  let gasUsed = 0;
+  methods.map((method) => {
+    const submiskTask = rs?.data?.result.find(
+      (el) => el.functionName.includes(method) && el.isError == "0"
+    );
+    gasUsed += Number(submiskTask.gasUsed) || 0;
+  });
+  const gasPerTask = (gasUsed * rs?.data?.result?.[0]?.gasPrice) / 10 ** 18;
+  return gasPerTask;
+};
 
 const tenSecondlyTask = () => {
   checkBalance();
@@ -201,5 +220,5 @@ const tenSecondlyTask = () => {
 
 const cronExpression = "0 */10 * * * *";
 cron.schedule(cronExpression, tenSecondlyTask, {
-  runOnInit: true
+  runOnInit: true,
 });
