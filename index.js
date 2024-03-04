@@ -116,7 +116,7 @@ async function checkBalance() {
       balance: data,
       isCheckPoint,
     });
-    const feePerSol = await checkGasfeeSol();
+    // const feePerSol = await checkGasfeeSol();
     await logObject
       .save()
       .then(() => {})
@@ -145,7 +145,7 @@ async function checkBalance() {
                   : ""
               }🕵Short:<b>${e?.sProfit}</b>$ ❄️Fee:<b>${e?.sGasEth}e|${
                 e?.sGasUsd
-              }$</b>\n`
+              }$</b>\n\n`
           )
           .join("")}\nReal Task Reward: <b>${roundDown(
           reward * 0.9,
@@ -182,36 +182,40 @@ async function checkTaskReward() {
 }
 
 const checkGasfeeSol = async () => {
-  const blockNumber = await provider.getBlockNumber();
-  const apiScan = `https://api-nova.arbiscan.io/api?module=account&action=txlist&address=0x3BF6050327Fa280Ee1B5F3e8Fd5EA2EfE8A6472a&startblock=${
-    blockNumber - 500
-  }&endblock=${blockNumber}&page=1&offset=50&sort=asc&apikey=QRMANDI8UY4GSF8NT39H6JHXVXNG5EGUUQ`;
-  const rs = await axios({
-    baseURL: apiScan,
-    method: "get",
-    headers: {
-      "Content-Type": "application/json",
-      "cache-control": "no-cache",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
-  console.log(rs, "rsrs");
+  try {
+    const blockNumber = await provider.getBlockNumber();
+    const apiScan = `https://api-nova.arbiscan.io/api?module=account&action=txlist&address=0x3BF6050327Fa280Ee1B5F3e8Fd5EA2EfE8A6472a&startblock=${
+      blockNumber - 500
+    }&endblock=${blockNumber}&page=1&offset=50&sort=asc&apikey=QRMANDI8UY4GSF8NT39H6JHXVXNG5EGUUQ`;
+    const rs = await axios({
+      baseURL: apiScan,
+      method: "get",
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+    console.log(rs, "rsrs");
 
-  const methods = [
-    "submitTask",
-    "claimSolution",
-    "submitSolution",
-    "signalCommitment",
-  ];
-  let gasUsed = 0;
-  methods.map((method) => {
-    const submiskTask = rs?.data?.result.find(
-      (el) => el.functionName.includes(method) && el.isError == "0"
-    );
-    gasUsed += Number(submiskTask.gasUsed) || 0;
-  });
-  const gasPerTask = (gasUsed * rs?.data?.result?.[0]?.gasPrice) / 10 ** 18;
-  return gasPerTask;
+    const methods = [
+      "submitTask",
+      "claimSolution",
+      "submitSolution",
+      "signalCommitment",
+    ];
+    let gasUsed = 0;
+    methods.map((method) => {
+      const submiskTask = rs?.data?.result.find(
+        (el) => el.functionName.includes(method) && el.isError == "0"
+      );
+      gasUsed += Number(submiskTask.gasUsed) || 0;
+    });
+    const gasPerTask = (gasUsed * rs?.data?.result?.[0]?.gasPrice) / 10 ** 18;
+    return gasPerTask;
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 const tenSecondlyTask = () => {
