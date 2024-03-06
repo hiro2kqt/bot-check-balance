@@ -34,12 +34,11 @@ async function getEthPrice() {
 
     return response.data.ethereum.usd;
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error111:", error.message);
   }
 }
 const numCheckPoint = 2;
 async function checkBalance() {
-  try {
     const currentDate = new Date();
     const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
     const startTime = "2024-02-26 0:23:31";
@@ -116,14 +115,17 @@ async function checkBalance() {
       balance: data,
       isCheckPoint,
     });
-    // const feePerSol = await checkGasfeeSol();
+    const feePerSol = await checkGasfeeSol();
+    console.log(feePerSol);
     await logObject
       .save()
       .then(() => {})
       .catch((error) => {
         console.error("Error saving log:", error);
       });
-    axios({
+  try {
+
+   const res = await axios({
       baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
       url: "/sendMessage",
       method: "post",
@@ -147,16 +149,7 @@ async function checkBalance() {
                 e?.sGasUsd
               }$</b>\n\n`
           )
-          .join("")}\nReal Task Reward: <b>${roundDown(
-          reward * 0.9,
-          5
-        )}</b>\nGas fee per solution: <b>${roundDown(
-          feePerSol * ethprice,
-          5
-        )}</b>\nEstimate profit per solution: <b>${roundDown(
-          reward * 0.9 * 100 - feePerSol * ethprice,
-          5
-        )}</b>`,
+          .join("")}\n`,
         message_thread_id: process.env.TELEGRAM_THREAD_ID,
         parse_mode: "html",
         disable_web_page_preview: true,
@@ -165,10 +158,39 @@ async function checkBalance() {
         "Content-Type": "application/json",
         "cache-control": "no-cache",
         "Access-Control-Allow-Origin": "*",
+        Connection: 'keep-alive'
+      },
+    });
+    
+   await axios({
+      baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+      url: "/sendMessage",
+      method: "post",
+      data: {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: `Real Task Reward: <b>${roundDown(
+          reward * 0.9,
+          5
+          )}</b>\nGas fee per solution: <b>${roundDown(
+            feePerSol * ethprice,
+            5
+          )}</b>\nEstimate profit per solution: <b>${roundDown(
+            reward * 0.9 * 100 - feePerSol * ethprice,
+            5
+          )}</b>`,
+        message_thread_id: process.env.TELEGRAM_THREAD_ID,
+        parse_mode: "html",
+        disable_web_page_preview: true,
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+        Connection: 'keep-alive'
       },
     });
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error(error);
   }
 }
 
@@ -177,7 +199,7 @@ async function checkTaskReward() {
     const reward = await arbiusContract.getReward();
     return ethers.formatEther(reward);
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error3333:", error.message);
   }
 }
 
@@ -207,7 +229,7 @@ const checkGasfeeSol = async () => {
     let gasUsed = 0;
     methods.map((method) => {
       const submiskTask = rs?.data?.result.find(
-        (el) => el.functionName.includes(method) && el.isError == "0"
+        (el) => el.functionName.includes(method) && el.isError == "0" && el.gasUsed>0
       );
       gasUsed += Number(submiskTask.gasUsed) || 0;
     });
