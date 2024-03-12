@@ -154,40 +154,6 @@ async function checkBalance() {
           Connection: "keep-alive",
         },
       });
-      const realReward = reward * 0.9;
-      const freegas =
-        feePerSol.claimSolution +
-        feePerSol.signalCommitment +
-        feePerSol.submitSolution;
-      console.log(freegas);
-      const autominegas = freegas + feePerSol.submitTask;
-      await axios({
-        baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
-        url: "/sendMessage",
-        method: "post",
-        data: {
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: `Real Task Reward: <b>${roundDown(
-            realReward,
-            5
-          )}</b>Aius | ${roundDown(realReward * process.env.AIUS_PRICE)}$
-Free mine gas: <b>${roundDown(freegas * ethprice, 5)}</b>$
-Profit: <b>${roundDown(realReward * process.env.AIUS_PRICE - freegas * ethprice)}</b>
-Automine gas: <b>${roundDown(autominegas * ethprice, 5)}</b>$
-Profit: <b>${roundDown(realReward * process.env.AIUS_PRICE - autominegas * ethprice)}</b>
-Claim gas: <b>${roundDown(feePerSol.claimSolution * ethprice)}</b>$
-`,
-          message_thread_id: process.env.TELEGRAM_THREAD_ID,
-          parse_mode: "html",
-          disable_web_page_preview: true,
-        },
-        headers: {
-          "Content-Type": "application/json",
-          "cache-control": "no-cache",
-          "Access-Control-Allow-Origin": "*",
-          Connection: "keep-alive",
-        },
-      });
     } catch (error) {
       console.error(error);
     }
@@ -195,6 +161,53 @@ Claim gas: <b>${roundDown(feePerSol.claimSolution * ethprice)}</b>$
     console.error("Error:", error.message);
   }
 }
+const fetchFee = async () => {
+  try {
+    const reward = await checkTaskReward();
+    const feePerSol = await fetchPrice();
+    const ethprice = await getEthPrice();
+    const realReward = reward * 0.9;
+    const freegas =
+      feePerSol.claimSolution +
+      feePerSol.signalCommitment +
+      feePerSol.submitSolution;
+    console.log(freegas);
+    const autominegas = freegas + feePerSol.submitTask;
+    await axios({
+      baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+      url: "/sendMessage",
+      method: "post",
+      data: {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: `Real Task Reward: <b>${roundDown(
+          realReward,
+          5
+        )}</b>Aius | ${roundDown(realReward * process.env.AIUS_PRICE)}$
+Free mine gas: <b>${roundDown(freegas * ethprice, 5)}</b>$
+Profit: <b>${roundDown(
+          realReward * process.env.AIUS_PRICE - freegas * ethprice
+        )}</b>
+Automine gas: <b>${roundDown(autominegas * ethprice, 5)}</b>$
+Profit: <b>${roundDown(
+          realReward * process.env.AIUS_PRICE - autominegas * ethprice
+        )}</b>
+Claim gas: <b>${roundDown(feePerSol.claimSolution * ethprice)}</b>$
+`,
+        message_thread_id: process.env.TELEGRAM_THREAD_ID,
+        parse_mode: "html",
+        disable_web_page_preview: true,
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.log("FEE ERROR", error);
+  }
+};
 
 async function checkTaskReward() {
   try {
@@ -257,11 +270,21 @@ const fetchPrice = async () => {
   }
 };
 
-const tenSecondlyTask = () => {
-  checkBalance();
-};
-
-const cronExpression = "0 */1 * * * *";
-cron.schedule(cronExpression, tenSecondlyTask, {
-  runOnInit: true,
-});
+cron.schedule(
+  "0 */10 * * * *",
+  () => {
+    checkBalance();
+  },
+  {
+    runOnInit: true,
+  }
+);
+cron.schedule(
+  "0 */2 * * * *",
+  () => {
+    fetchFee();
+  },
+  {
+    runOnInit: true,
+  }
+);
