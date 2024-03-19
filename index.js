@@ -272,7 +272,7 @@ const fetchPrice = async () => {
 };
 
 cron.schedule(
-  "0 */10 * * * *",
+  "0 */2 * * * *",
   () => {
     checkBalance();
   },
