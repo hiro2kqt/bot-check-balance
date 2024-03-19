@@ -39,127 +39,115 @@ async function getEthPrice() {
 }
 const numCheckPoint = 2;
 async function checkBalance() {
-  try {
-    const currentDate = new Date();
-    const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
-    const startTime = "2024-02-26 0:23:31";
-    const startDate = new Date(startTime);
-    const timeDifference = currentDate - startDate;
-    // Convert milliseconds to seconds, then to minutes, hours, and days
-    const seconds = Math.floor(timeDifference / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const ethprice = await getEthPrice();
-    // const previousLogs = await logReward.find(
-    //   {},
-    //   {},
-    //   { sort: { logTime: -1 }, limit: 6 }
-    // );
-    // const isCheckPoint = previousLogs[5]?.isCheckPoint;
-    // const lastLog = previousLogs[0];
-    const data = await Promise.all(
-      listAccount.map(async (obj, index) => {
-        const stakeAmount = await arbiusContract.validators(obj);
-        const balance = await tokenContract.balanceOf(obj);
-        const balanceWei = await provider.getBalance(obj);
-        const aiusBalance = roundDown(ethers.formatEther(balance));
-        const ethBalance = roundDown(ethers.formatEther(balanceWei));
-        const balanceClaimWei = await provider.getBalance(
-          listClaimAccount[index]
-        );
-        const ethClaimBalance = roundDown(ethers.formatEther(balanceClaimWei));
-
-        let hProfit = 0;
-        let hGasEth = 0;
-        let hGasUsd = 0;
-        // if (isCheckPoint == true) {
-        //   hGasEth = previousLogs[4]?.balance[index]?.eth - +ethBalance;
-        //   hGasUsd = hGasEth * +ethprice;
-        //   hProfit =
-        //     (+aiusBalance - previousLogs[4]?.balance[index]?.aius) *
-        //       +process.env.AIUS_PRICE -
-        //     hGasUsd -
-        //     0.857;
-        // }
-        // const sProfit =
-        //   (+aiusBalance - lastLog?.balance[index]?.aius) *
-        //     +process.env.AIUS_PRICE -
-        //   (lastLog?.balance[index]?.eth - +ethBalance) * +ethprice -
-        //   0.857 / 6;
-        // const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
-        // const sGasUsd = hGasEth * +ethprice;
-        return {
-          address: obj,
-          aius: aiusBalance,
-          eth: ethBalance,
-          ethClaim: ethClaimBalance,
-          usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
-          usdtClaim: roundDown(
-            +ethers.formatEther(balanceClaimWei) * +ethprice
-          ),
-          // hProfit: roundDown(hProfit),
-          // hGasEth: roundDown(hGasEth),
-          // hGasUsd: roundDown(hGasUsd),
-          // sProfit: roundDown(sProfit),
-          // sGasEth: roundDown(sGasEth),
-          // sGasUsd: roundDown(sGasUsd),
-          stakeAmount: ethers.formatEther(stakeAmount[0]),
-        };
-      })
-    );
-    const reward = await checkTaskReward();
-    // const logObject = new logReward({
-    //   task_reward: +reward,
-    //   logTime: currentDate,
-    //   balance: data,
-    //   isCheckPoint,
-    // });
-    const feePerSol = await fetchPrice();
-    // await logObject
-    //   .save()
-    //   .then(() => {})
-    //   .catch((error) => {
-    //     console.error("Error saving log:", error);
-    //   });
+  const minStake = await getMinStake();
     try {
-      const res = await axios({
-        baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
-        url: "/sendMessage",
-        method: "post",
-        data: {
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: `${currentTime} <b>${days}d${hours % 24}h${
-            minutes % 60
-          }m</b>\n${data
-            .map(
-              (e, index) =>
-                `<a href="https://nova.arbiscan.io/address/${
-                  listAccount[index]
-                }">${addressShortener(listAccount[index])}</a>\n<b>${
-                  e?.aius
-                }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$
-<b>Claim balance:</b> ${e?.ethClaim}e | ${e?.usdtClaim}$
-<b>Staked: </b> ${roundDown(e?.stakeAmount)}\n\n`
-            )
-            .join("")}\n`,
-          message_thread_id: process.env.TELEGRAM_THREAD_ID,
-          parse_mode: "html",
-          disable_web_page_preview: true,
-        },
-        headers: {
-          "Content-Type": "application/json",
-          "cache-control": "no-cache",
-          "Access-Control-Allow-Origin": "*",
-          Connection: "keep-alive",
-        },
-      });
+      const currentDate = new Date();
+      const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
+      const startTime = "2024-02-26 0:23:31";
+      const startDate = new Date(startTime);
+      const timeDifference = currentDate - startDate;
+      // Convert milliseconds to seconds, then to minutes, hours, and days
+      const seconds = Math.floor(timeDifference / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      const ethprice = await getEthPrice();
+      // const previousLogs = await logReward.find(
+      //   {},
+      //   {},
+      //   { sort: { logTime: -1 }, limit: 6 }
+      // );
+      // const isCheckPoint = previousLogs[5]?.isCheckPoint;
+      // const lastLog = previousLogs[0];
+      const data = await Promise.all(
+        listAccount.map(async (obj, index) => {
+          const stakeAmount = await arbiusContract.validators(obj);
+          const balance = await tokenContract.balanceOf(obj);
+          const balanceWei = await provider.getBalance(obj);
+          const aiusBalance = roundDown(ethers.formatEther(balance));
+          const ethBalance = roundDown(ethers.formatEther(balanceWei));
+          const balanceClaimWei = await provider.getBalance(
+            listClaimAccount[index]
+          );
+          const ethClaimBalance = roundDown(ethers.formatEther(balanceClaimWei));
+
+          let hProfit = 0;
+          let hGasEth = 0;
+          let hGasUsd = 0;
+          // if (isCheckPoint == true) {
+          //   hGasEth = previousLogs[4]?.balance[index]?.eth - +ethBalance;
+          //   hGasUsd = hGasEth * +ethprice;
+          //   hProfit =
+          //     (+aiusBalance - previousLogs[4]?.balance[index]?.aius) *
+          //       +process.env.AIUS_PRICE -
+          //     hGasUsd -
+          //     0.857;
+          // }
+          // const sProfit =
+          //   (+aiusBalance - lastLog?.balance[index]?.aius) *
+          //     +process.env.AIUS_PRICE -
+          //   (lastLog?.balance[index]?.eth - +ethBalance) * +ethprice -
+          //   0.857 / 6;
+          // const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
+          // const sGasUsd = hGasEth * +ethprice;
+          return {
+            address: obj,
+            aius: aiusBalance,
+            eth: ethBalance,
+            ethClaim: ethClaimBalance,
+            usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
+            usdtClaim: roundDown(
+              +ethers.formatEther(balanceClaimWei) * +ethprice
+            ),
+            // hProfit: roundDown(hProfit),
+            // hGasEth: roundDown(hGasEth),
+            // hGasUsd: roundDown(hGasUsd),
+            // sProfit: roundDown(sProfit),
+            // sGasEth: roundDown(sGasEth),
+            // sGasUsd: roundDown(sGasUsd),
+            stakeAmount: ethers.formatEther(stakeAmount[0]),
+          };
+        })
+      );
+      
+      try {
+        const res = await axios({
+          baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+          url: "/sendMessage",
+          method: "post",
+          data: {
+            chat_id: process.env.TELEGRAM_CHAT_ID,
+            text: `${currentTime} <b>${days}d${hours % 24}h${
+              minutes % 60
+            }m</b>\n${data
+              .map(
+                (e, index) =>
+                  `<a href="https://nova.arbiscan.io/address/${
+                    listAccount[index]
+                  }">${addressShortener(listAccount[index])}</a>\n<b>${
+                    e?.aius
+                  }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$
+  <b>Claim balance:</b> ${e?.ethClaim}e | ${e?.usdtClaim}$
+  <b>Staked: </b> ${roundDown(e?.stakeAmount)} ${+e?.stakeAmount < +minStake ? "@hiro_trk @tian_ng" : ""}\n\n`
+              )
+              .join("")}\n`,
+            message_thread_id: process.env.TELEGRAM_THREAD_ID,
+            parse_mode: "html",
+            disable_web_page_preview: true,
+          },
+          headers: {
+            "Content-Type": "application/json",
+            "cache-control": "no-cache",
+            "Access-Control-Allow-Origin": "*",
+            Connection: "keep-alive",
+          },
+        });
+      } catch (error) {
+        console.error(error);
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error:", error.message);
     }
-  } catch (error) {
-    console.error("Error:", error.message);
-  }
 }
 const fetchFee = async () => {
   try {
@@ -181,7 +169,9 @@ const fetchFee = async () => {
       data: {
         chat_id: process.env.TELEGRAM_CHAT_ID,
         text: `${
-          autominegaseth > 0.045 || realReward > 0.0015 ? `@hiro_trk @tian_ng\n` : ""
+          autominegaseth > 0.045 || realReward > 0.0015
+            ? `@hiro_trk @tian_ng\n`
+            : ""
         } Real Task Reward: <b>${roundDown(
           realReward,
           5
@@ -215,6 +205,14 @@ Claim gas: <b>${roundDown(feePerSol.claimSolution * ethprice)}</b>$
 async function checkTaskReward() {
   try {
     const reward = await arbiusContract.getReward();
+    return ethers.formatEther(reward);
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
+}
+async function getMinStake() {
+  try {
+    const reward = await arbiusContract.getValidatorMinimum();
     return ethers.formatEther(reward);
   } catch (error) {
     console.error("Error:", error.message);
@@ -273,15 +271,15 @@ const fetchPrice = async () => {
   }
 };
 
-// cron.schedule(
-//   "0 */10 * * * *",
-//   () => {
-//     checkBalance();
-//   },
-//   {
-//     runOnInit: true,
-//   }
-// );
+cron.schedule(
+  "0 */10 * * * *",
+  () => {
+    checkBalance();
+  },
+  {
+    runOnInit: true,
+  }
+);
 cron.schedule(
   "0 */2 * * * *",
   () => {
