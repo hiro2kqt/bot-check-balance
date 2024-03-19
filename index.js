@@ -173,13 +173,16 @@ const fetchFee = async () => {
       feePerSol.submitSolution;
     console.log(freegas);
     const autominegas = freegas + feePerSol.submitTask;
+    const autominegaseth = roundDown(autominegas * ethprice, 5);
     await axios({
       baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
       url: "/sendMessage",
       method: "post",
       data: {
         chat_id: process.env.TELEGRAM_CHAT_ID,
-        text: `Real Task Reward: <b>${roundDown(
+        text: `${
+          autominegaseth > 0.045 || realReward > 0.0015 ? `@hiro_trk @tian_ng\n` : ""
+        } Real Task Reward: <b>${roundDown(
           realReward,
           5
         )}</b>Aius | ${roundDown(realReward * process.env.AIUS_PRICE)}$
@@ -270,15 +273,15 @@ const fetchPrice = async () => {
   }
 };
 
-cron.schedule(
-  "0 */10 * * * *",
-  () => {
-    checkBalance();
-  },
-  {
-    runOnInit: true,
-  }
-);
+// cron.schedule(
+//   "0 */10 * * * *",
+//   () => {
+//     checkBalance();
+//   },
+//   {
+//     runOnInit: true,
+//   }
+// );
 cron.schedule(
   "0 */2 * * * *",
   () => {
