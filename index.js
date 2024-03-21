@@ -4,8 +4,9 @@ const cron = require("node-cron");
 const abiToken = require("./abi");
 require("dotenv").config();
 const EngineABI = require("./V2_EngineV2.json");
-const logReward = require("./db");
+// const logReward = require("./db");
 const { roundDown } = require("./utils");
+const { readFileSync, writeFileSync } = require("fs");
 
 const listAccount = JSON.parse(process.env.LIST_ACCOUNT);
 const listClaimAccount = JSON.parse(process.env.LIST_CLAIM_ACCOUNT);
@@ -21,6 +22,12 @@ const arbiusContract = new ethers.Contract(
   EngineABI,
   provider
 );
+const blockURL = "./lastblock";
+(async () => {
+  const blockNumber = await provider.getBlockNumber();
+  console.log(blockNumber);
+  writeFileSync(blockURL, blockNumber.toString());
+})();
 const addressShortener = (addr = "", digits = 5) => {
   digits = 2 * digits >= addr.length ? addr.length : digits;
   return `${addr.substring(0, digits)}...${addr.slice(-digits)}`;
@@ -40,114 +47,116 @@ async function getEthPrice() {
 const numCheckPoint = 2;
 async function checkBalance() {
   const minStake = await getMinStake();
-    try {
-      const currentDate = new Date();
-      const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
-      const startTime = "2024-02-26 0:23:31";
-      const startDate = new Date(startTime);
-      const timeDifference = currentDate - startDate;
-      // Convert milliseconds to seconds, then to minutes, hours, and days
-      const seconds = Math.floor(timeDifference / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-      const ethprice = await getEthPrice();
-      // const previousLogs = await logReward.find(
-      //   {},
-      //   {},
-      //   { sort: { logTime: -1 }, limit: 6 }
-      // );
-      // const isCheckPoint = previousLogs[5]?.isCheckPoint;
-      // const lastLog = previousLogs[0];
-      const data = await Promise.all(
-        listAccount.map(async (obj, index) => {
-          const stakeAmount = await arbiusContract.validators(obj);
-          const balance = await tokenContract.balanceOf(obj);
-          const balanceWei = await provider.getBalance(obj);
-          const aiusBalance = roundDown(ethers.formatEther(balance));
-          const ethBalance = roundDown(ethers.formatEther(balanceWei));
-          const balanceClaimWei = await provider.getBalance(
-            listClaimAccount[index]
-          );
-          const ethClaimBalance = roundDown(ethers.formatEther(balanceClaimWei));
+  try {
+    const currentDate = new Date();
+    const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
+    const startTime = "2024-02-26 0:23:31";
+    const startDate = new Date(startTime);
+    const timeDifference = currentDate - startDate;
+    // Convert milliseconds to seconds, then to minutes, hours, and days
+    const seconds = Math.floor(timeDifference / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const ethprice = await getEthPrice();
+    // const previousLogs = await logReward.find(
+    //   {},
+    //   {},
+    //   { sort: { logTime: -1 }, limit: 6 }
+    // );
+    // const isCheckPoint = previousLogs[5]?.isCheckPoint;
+    // const lastLog = previousLogs[0];
+    const data = await Promise.all(
+      listAccount.map(async (obj, index) => {
+        const stakeAmount = await arbiusContract.validators(obj);
+        const balance = await tokenContract.balanceOf(obj);
+        const balanceWei = await provider.getBalance(obj);
+        const aiusBalance = roundDown(ethers.formatEther(balance));
+        const ethBalance = roundDown(ethers.formatEther(balanceWei));
+        const balanceClaimWei = await provider.getBalance(
+          listClaimAccount[index]
+        );
+        const ethClaimBalance = roundDown(ethers.formatEther(balanceClaimWei));
 
-          let hProfit = 0;
-          let hGasEth = 0;
-          let hGasUsd = 0;
-          // if (isCheckPoint == true) {
-          //   hGasEth = previousLogs[4]?.balance[index]?.eth - +ethBalance;
-          //   hGasUsd = hGasEth * +ethprice;
-          //   hProfit =
-          //     (+aiusBalance - previousLogs[4]?.balance[index]?.aius) *
-          //       +process.env.AIUS_PRICE -
-          //     hGasUsd -
-          //     0.857;
-          // }
-          // const sProfit =
-          //   (+aiusBalance - lastLog?.balance[index]?.aius) *
-          //     +process.env.AIUS_PRICE -
-          //   (lastLog?.balance[index]?.eth - +ethBalance) * +ethprice -
-          //   0.857 / 6;
-          // const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
-          // const sGasUsd = hGasEth * +ethprice;
-          return {
-            address: obj,
-            aius: aiusBalance,
-            eth: ethBalance,
-            ethClaim: ethClaimBalance,
-            usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
-            usdtClaim: roundDown(
-              +ethers.formatEther(balanceClaimWei) * +ethprice
-            ),
-            // hProfit: roundDown(hProfit),
-            // hGasEth: roundDown(hGasEth),
-            // hGasUsd: roundDown(hGasUsd),
-            // sProfit: roundDown(sProfit),
-            // sGasEth: roundDown(sGasEth),
-            // sGasUsd: roundDown(sGasUsd),
-            stakeAmount: ethers.formatEther(stakeAmount[0]),
-          };
-        })
-      );
-      
-      try {
-        const res = await axios({
-          baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
-          url: "/sendMessage",
-          method: "post",
-          data: {
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: `${currentTime} <b>${days}d${hours % 24}h${
-              minutes % 60
-            }m</b>\n${data
-              .map(
-                (e, index) =>
-                  `<a href="https://nova.arbiscan.io/address/${
-                    listAccount[index]
-                  }">${addressShortener(listAccount[index])}</a>\n<b>${
-                    e?.aius
-                  }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$
+        let hProfit = 0;
+        let hGasEth = 0;
+        let hGasUsd = 0;
+        // if (isCheckPoint == true) {
+        //   hGasEth = previousLogs[4]?.balance[index]?.eth - +ethBalance;
+        //   hGasUsd = hGasEth * +ethprice;
+        //   hProfit =
+        //     (+aiusBalance - previousLogs[4]?.balance[index]?.aius) *
+        //       +process.env.AIUS_PRICE -
+        //     hGasUsd -
+        //     0.857;
+        // }
+        // const sProfit =
+        //   (+aiusBalance - lastLog?.balance[index]?.aius) *
+        //     +process.env.AIUS_PRICE -
+        //   (lastLog?.balance[index]?.eth - +ethBalance) * +ethprice -
+        //   0.857 / 6;
+        // const sGasEth = lastLog?.balance[index]?.eth - +ethBalance;
+        // const sGasUsd = hGasEth * +ethprice;
+        return {
+          address: obj,
+          aius: aiusBalance,
+          eth: ethBalance,
+          ethClaim: ethClaimBalance,
+          usdt: roundDown(+ethers.formatEther(balanceWei) * +ethprice),
+          usdtClaim: roundDown(
+            +ethers.formatEther(balanceClaimWei) * +ethprice
+          ),
+          // hProfit: roundDown(hProfit),
+          // hGasEth: roundDown(hGasEth),
+          // hGasUsd: roundDown(hGasUsd),
+          // sProfit: roundDown(sProfit),
+          // sGasEth: roundDown(sGasEth),
+          // sGasUsd: roundDown(sGasUsd),
+          stakeAmount: ethers.formatEther(stakeAmount[0]),
+        };
+      })
+    );
+
+    try {
+      const res = await axios({
+        baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+        url: "/sendMessage",
+        method: "post",
+        data: {
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: `${currentTime} <b>${days}d${hours % 24}h${
+            minutes % 60
+          }m</b>\n${data
+            .map(
+              (e, index) =>
+                `<a href="https://nova.arbiscan.io/address/${
+                  listAccount[index]
+                }">${addressShortener(listAccount[index])}</a>\n<b>${
+                  e?.aius
+                }</b> Aius|<b>${e?.eth}</b>eth|<b>${e.usdt}</b>$
   <b>Claim balance:</b> ${e?.ethClaim}e | ${e?.usdtClaim}$
-  <b>Staked: </b> ${roundDown(e?.stakeAmount)} ${+e?.stakeAmount < +minStake ? "@hiro_trk @tian_ng" : ""}\n\n`
-              )
-              .join("")}\n`,
-            message_thread_id: process.env.TELEGRAM_THREAD_ID,
-            parse_mode: "html",
-            disable_web_page_preview: true,
-          },
-          headers: {
-            "Content-Type": "application/json",
-            "cache-control": "no-cache",
-            "Access-Control-Allow-Origin": "*",
-            Connection: "keep-alive",
-          },
-        });
-      } catch (error) {
-        console.error(error);
-      }
+  <b>Staked: </b> ${roundDown(e?.stakeAmount)} ${
+                  +e?.stakeAmount < +minStake ? "@hiro_trk @tian_ng" : ""
+                }\n\n`
+            )
+            .join("")}\n`,
+          message_thread_id: process.env.TELEGRAM_THREAD_ID,
+          parse_mode: "html",
+          disable_web_page_preview: true,
+        },
+        headers: {
+          "Content-Type": "application/json",
+          "cache-control": "no-cache",
+          "Access-Control-Allow-Origin": "*",
+          Connection: "keep-alive",
+        },
+      });
     } catch (error) {
-      console.error("Error:", error.message);
+      console.error(error);
     }
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
 }
 const fetchFee = async () => {
   try {
@@ -270,7 +279,108 @@ const fetchPrice = async () => {
     console.log(error);
   }
 };
-
+const getMethodName = (functionName) => {
+  const match = functionName.match(/(?:^|\.?)(\w+)\(/);
+  return match ? match[1] : functionName;
+};
+const getStatMiner = async (address) => {
+  try {
+    let countResult = {
+      submitTask: {
+        success: 0,
+        fail: 0,
+      },
+      claimSolution: {
+        success: 0,
+        fail: 0,
+      },
+      submitSolution: {
+        success: 0,
+        fail: 0,
+      },
+      signalCommitment: {
+        success: 0,
+        fail: 0,
+      },
+    };
+    const blockNumber = await provider.getBlockNumber();
+    const lastblock = readFileSync(blockURL, "utf-8");
+    console.log("Lastblock:", lastblock, "Currentblock:", blockNumber);
+    const apiScan = `https://api-nova.arbiscan.io/api?module=account&action=txlist&address=${address}&startblock=${lastblock}&endblock=${blockNumber}&sort=asc&apikey=QRMANDI8UY4GSF8NT39H6JHXVXNG5EGUUQ`;
+    const rs = await axios({
+      baseURL: apiScan,
+      method: "get",
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+    const methods = [
+      "submitTask",
+      "claimSolution",
+      "submitSolution",
+      "signalCommitment",
+    ];
+    await Promise.all(
+      rs?.data?.result?.map((obj) => {
+        const { functionName, isError } = obj;
+        const methodName = getMethodName(functionName);
+        if (methods.includes(methodName)) {
+          if (isError === "0") {
+            countResult[methodName].success++;
+          } else {
+            countResult[methodName].fail++;
+          }
+        }
+      })
+    );
+    await writeFileSync(blockURL, blockNumber.toString());
+    return countResult;
+  } catch (error) {
+    console.log("MONITOR STAT ERROR", error);
+  }
+};
+const monitorTask = async () => {
+  try {
+    const listData = await Promise.all(
+      listAccount.map((adr) => getStatMiner(adr))
+    );
+    await axios({
+      baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+      url: "/sendMessage",
+      method: "post",
+      data: {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: `Last 10min
+${listData
+  .map(
+    (obj, index) => `<b>${addressShortener(listAccount[index])}</b>
+Submit: <b>${obj?.submitTask?.success}</b>
+Solve: <b>${
+      +obj?.submitSolution?.success + +obj?.submitSolution?.fail
+    }</b> (success: <b>${obj?.submitSolution?.success}</b> - Fail: <b>${
+      obj?.submitSolution?.fail
+    }</b>)
+Claim: <b>${obj?.claimSolution?.success}</b>\n
+`
+  )
+  .join("")}`,
+        message_thread_id: 28091,
+        parse_mode: "html",
+        disable_web_page_preview: true,
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.log("MONITOR ERROR", error);
+  }
+};
 cron.schedule(
   "0 */2 * * * *",
   () => {
@@ -284,6 +394,15 @@ cron.schedule(
   "0 */2 * * * *",
   () => {
     fetchFee();
+  },
+  {
+    runOnInit: true,
+  }
+);
+cron.schedule(
+  "0 */10 * * * *",
+  () => {
+    monitorTask();
   },
   {
     runOnInit: true,
