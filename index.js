@@ -341,11 +341,18 @@ const getStatMiner = async (address) => {
     console.log("MONITOR STAT ERROR", error);
   }
 };
+async function delay(timeout) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, timeout);
+  });
+}
 const monitorTask = async () => {
   try {
     const listData = await Promise.all(
       listAccount.map((adr) => getStatMiner(adr))
     );
+    console.log(listClaimAccount);
+    await delay(2000);
     const listClaimData = await Promise.all(
       listClaimAccount.map((adr) => getStatMiner(adr))
     );
