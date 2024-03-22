@@ -346,6 +346,9 @@ const monitorTask = async () => {
     const listData = await Promise.all(
       listAccount.map((adr) => getStatMiner(adr))
     );
+    const listClaimData = await Promise.all(
+      listClaimAccount.map((adr) => getStatMiner(adr))
+    );
     await axios({
       baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
       url: "/sendMessage",
@@ -362,7 +365,7 @@ Solve: <b>${
     }</b> (success: <b>${obj?.submitSolution?.success}</b> - Fail: <b>${
       obj?.submitSolution?.fail
     }</b>)
-Claim: <b>${obj?.claimSolution?.success}</b>\n
+Claim: <b>${listClaimData[index]?.claimSolution?.success}</b>\n
 `
   )
   .join("")}`,
