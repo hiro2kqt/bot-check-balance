@@ -24,6 +24,7 @@ const fetchDataAndProcess = async () => {
     extra_ids: [],
     type: "ask",
     direct_port_count: { gte: 2 },
+    dph_total: { lte: 1.2 },
   };
 
   const resp = await axios.get("https://cloud.vast.ai/api/v0/bundles/", {
@@ -32,7 +33,7 @@ const fetchDataAndProcess = async () => {
     },
   });
   const offers = resp.data?.offers;
-  if(offers?.length > 0) {
+  if (offers?.length > 0) {
     axios({
       baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
       url: "/sendMessage",
@@ -65,7 +66,6 @@ const fetchDataAndProcess = async () => {
       },
     });
   }
-  
 };
 
 const tenSecondlyTask = () => {
