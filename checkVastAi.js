@@ -10,8 +10,6 @@ const fetchDataAndProcess = async () => {
   const currentTime = `${currentDate.getDate()}/${currentDate.getMonth()}|${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
   const query = {
     disk_space: { gte: 16 },
-    duration: { gte: 29339887.430730745 },
-    verified: { eq: true },
     rentable: { eq: true },
     gpu_option: { eq: "A100 PCIE" },
     sort_option: { 0: ["score", "desc"] },
@@ -34,37 +32,40 @@ const fetchDataAndProcess = async () => {
     },
   });
   const offers = resp.data?.offers;
-  axios({
-    baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
-    url: "/sendMessage",
-    method: "post",
-    data: {
-      chat_id: process.env.TELEGRAM_CHAT_ID,
-      text: `<b>${currentTime}</b> ${offers?.length > 0 ? "@hiro_trk\n" : ""}
-${
-  offers?.length > 0
-    ? offers
-        .map(
-          (e, index) =>
-            `ID:<code>${e?.id}</code>\nPrice: <b>${e?.dph_base}|${
-              e?.dph_total
-            }</b>\nDuration:${roundDown(
-              +e?.duration / (60 * 60 * 24 * 30)
-            )}M\nReliability:${roundDown(+e?.reliability_mult * 100)}%\n\n`
-        )
-        .join("")
-    : "No A100_PCIE Offer found"
-}\n`,
-      message_thread_id: "846",
-      parse_mode: "html",
-      disable_web_page_preview: true,
-    },
-    headers: {
-      "Content-Type": "application/json",
-      "cache-control": "no-cache",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+  if(offers?.length > 0) {
+    axios({
+      baseURL: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`,
+      url: "/sendMessage",
+      method: "post",
+      data: {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: `<b>${currentTime}</b> ${offers?.length > 0 ? "@hiro_trk\n" : ""}
+  ${
+    offers?.length > 0
+      ? offers
+          .map(
+            (e, index) =>
+              `ID:<code>${e?.id}</code>\nPrice: <b>${e?.dph_base}|${
+                e?.dph_total
+              }</b>\nDuration:${roundDown(
+                +e?.duration / (60 * 60 * 24 * 30)
+              )}M\nReliability:${roundDown(+e?.reliability_mult * 100)}%\n\n`
+          )
+          .join("")
+      : "No A100_PCIE Offer found"
+  }\n`,
+        message_thread_id: "846",
+        parse_mode: "html",
+        disable_web_page_preview: true,
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
+  
 };
 
 const tenSecondlyTask = () => {
